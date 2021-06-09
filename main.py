@@ -739,7 +739,7 @@ class HUD():
 
         self.hp_rect_full = pyg.Rect(0, 0, 52, 47)
         self.hp_rect_empty = pyg.Rect(53, 0, 52, 47)
-        self.hp_rect = pyg.rect.Rect(0, 0, 380, 47)
+        self.hp_rect = pyg.rect.Rect(0, 0, 1000, 47)
         self.hp_image = pyg.Surface(self.hp_rect.size, flags=pyg.SRCALPHA)
         self.hp_image.fill((0, 0, 0, 0))
         self.hp_rect.topleft = (10, 10)
@@ -895,13 +895,10 @@ class World():
             self.spawn = self.down_ladder.rect.center
         elif dir == 'down':
             self.spawn = self.up_ladder.rect.center
-        else:
-            print('eooror')
-            0/0
 
     def generate(self, level, theme, dir, preset=None):
-        """Create a given level procedurally. Until level 10, use the grid
-        generation type, where a grid of rooms is created, then a maze is
+        """Create a given level randomly. Until level 10, use the grid
+        generation type, in which a grid of rooms is created, then a maze is
         constructed that reaches every room.
         """
 
