@@ -631,26 +631,25 @@ class Archer(Enemy):
     def __init__(self, window, world, pos):
         super().__init__(window, world)
 
-        self.image = pyg.Surface((40, 40))
-        # self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'archer.png'))).convert_alpha()
+        self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'archer.png'))).convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.center = pos
         self.draw_rect = self.rect
         self.collide_rect = self.rect.inflate(15, 15)
 
-        self.b_image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'weapons', 'pebble.png'))).convert_alpha()
+        self.b_image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'arrow.png'))).convert_alpha()
         self.b_rect = self.b_image.get_rect()
 
         self.speed = 2
-        self.max_speed = 2
         self.dir = 0
         self.score = 30
 
         self.close_range = 400
         self.fire_range = 600
 
+        self.hp = 1
         self.damage = 1
-        self.fire_tick = FPS # Fire once a second
+        self.fire_tick = 2 * FPS # Fire once every other second
         self.bullet_data = {'image': self.b_image,
                             'rect': self.b_rect,
                             'owner': 'enemy',
@@ -660,7 +659,6 @@ class Archer(Enemy):
                             'invulnerable': False,
                             'bouncy': False}
 
-        self.hp = 1
 
     def update(self, player):
         p_pos = player.rect.center
@@ -668,16 +666,23 @@ class Archer(Enemy):
         dist = ((self.rect.centerx - player.rect.centerx)**2 +
                 (self.rect.centery - player.rect.centery)**2)
 
-        if dist < self.close_range**2 and not player.is_invisible: # Seek out player
+         # If too close to player
+        if dist < self.close_range**2 and not player.is_invisible:
             self.dir = math.atan2((p_pos[1] - self.rect.center[1]),
                                   (p_pos[0] - self.rect.center[0]))
             self.vel.x -= math.cos(self.dir) * self.speed
             self.vel.y -= math.sin(self.dir) * self.speed
+        elif dist < 3 * self.close_range**2: # Randomly move around
+            self.dir = random.triangular(-math.pi, math.pi, self.dir)
+            self.vel.x += math.cos(self.dir) * self.speed
+            self.vel.y += math.sin(self.dir) * self.speed
+
+            self.speed = .3
         else:
             self.vel.x *= .7
             self.vel.y *= .7
 
-        if dist < self.fire_range**2 and not player.is_invisible: # Seek out player
+        if dist < self.fire_range**2 and not player.is_invisible:
             self.fire_tick -= 1
 
         if self.fire_tick <= 0:
@@ -689,6 +694,7 @@ class Archer(Enemy):
     def fire(self, p_pos):
         self.bullet_data['source'] = self.draw_rect.center
         self.bullet_data['target'] = p_pos
+        self.bullet_data['image'] = pyg.transform.rotate(self.b_image, self.dir + 90)
 
         bullet = Bullet(self.window, self.world, self.bullet_data)
         self.world.bullets.add(bullet)
@@ -698,8 +704,7 @@ class Charger(Enemy):
        towards the player whenever they get nearby."""
     def __init__(self, window, world, pos):
         super().__init__(window, world)
-        self.image = pyg.Surface((40, 40))
-        # self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'charger.png'))).convert_alpha()
+        self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'charger.png'))).convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.center = pos
         self.draw_rect = self.rect
