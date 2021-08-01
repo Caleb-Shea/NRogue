@@ -640,7 +640,7 @@ class Archer(Enemy):
         self.b_image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'arrow.png'))).convert_alpha()
         self.b_rect = self.b_image.get_rect()
 
-        self.speed = 2
+        self.speed = 2.5
         self.dir = 0
         self.score = 30
 
@@ -649,7 +649,7 @@ class Archer(Enemy):
 
         self.hp = 1
         self.damage = 1
-        self.fire_tick = 2 * FPS # Fire once every other second
+        self.fire_tick = 2 * FPS//8 # Fire once every other second
         self.bullet_data = {'image': self.b_image,
                             'rect': self.b_rect,
                             'owner': 'enemy',
@@ -687,14 +687,19 @@ class Archer(Enemy):
 
         if self.fire_tick <= 0:
             self.fire(p_pos)
-            self.fire_tick = FPS
+            self.fire_tick = 2 * FPS
 
         super().update()
 
     def fire(self, p_pos):
+        """Fire an arrow from the archer towards the player."""
         self.bullet_data['source'] = self.draw_rect.center
         self.bullet_data['target'] = p_pos
-        self.bullet_data['image'] = pyg.transform.rotate(self.b_image, self.dir + 90)
+
+        # Rotate the arrow so it faces the right way
+        dir = math.degrees(math.atan2((p_pos[1] - self.rect.center[1]),
+                         (p_pos[0] - self.rect.center[0])))
+        self.bullet_data['image'] = pyg.transform.rotate(self.b_image, -dir)
 
         bullet = Bullet(self.window, self.world, self.bullet_data)
         self.world.bullets.add(bullet)
