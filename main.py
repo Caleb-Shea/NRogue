@@ -988,8 +988,8 @@ class World():
             self.spawn = self.up_ladder.rect.center
 
     def generate(self, level, theme, dir, preset=None):
-        """Create a given level randomly. Until level 10, use the grid
-        generation type, in which a grid of rooms is created, then a maze is
+        """Create a given level randomly. Until level 10, use grid
+        generation, in which a grid of rooms is created, then a maze is
         constructed that reaches every room.
         """
 
@@ -1204,10 +1204,7 @@ class Room():
         self.pickups = []
         self.enemies = []
 
-        if type in ['regular', 'start', 'exit', 'treasure', 'danger']:
-            keep = [True, True, True, True]
-
-        self.add_features(type)
+        assert type in ['regular', 'start', 'exit', 'treasure', 'danger', 'shop']
 
          # Create the corners of the room
         corner_coords = [(0, 0),
@@ -1245,6 +1242,8 @@ class Room():
             pos = (rect.x, y + rect.y)
             wall = Wall(self.window, pos, theme, 'ud')
             self.walls.append(wall)
+
+        self.add_features(type)
 
     def remove_wall(self, side, pos):
         side_walls = []
@@ -1308,7 +1307,7 @@ class Room():
 
         elif type == 'regular':
             # The regular room has a 50% chance to have pickups
-            # If the room has pickups, also spawn dummies
+            # If the room has pickups, also spawn enemies
             if random.random() < .5:
                 num_p = random.randint(2, 5)
                 num_e = random.randint(1, 2)
@@ -1325,10 +1324,18 @@ class Room():
                 self.pickups.append(pickup)
 
             for i in range(num_e):
+                e_type = random.choices(['dummy', 'archer'], weights=[4, 1], k=1)[0]
                 pos = (random.randint(self.rect.x + 100, self.rect.right - 100),
                        random.randint(self.rect.y + 100, self.rect.bottom - 100))
-                dummy = Dummy(self.window, self.world, pos)
-                self.enemies.append(dummy)
+                if e_type == 'dummy':
+                    enemy = Dummy(self.window, self.world, pos)
+                elif e_type == 'archer':
+                    enemy = Archer(self.window, self.world, pos)
+                self.enemies.append(enemy)
+
+        elif type == 'store':
+            #Replace empty walls with doors
+            #
 
     def move(self, pos):
         sprite_list = self.walls + self.pickups + self.statics
