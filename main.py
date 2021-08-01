@@ -1465,8 +1465,9 @@ def main():
                 elif event.type == pyg.MOUSEBUTTONDOWN:
                     if event.button == 1:
                         player.fire()
-                elif event.type == pyg.WINDOWEVENT_FOCUS_LOST:
-                    paused = True
+                # elif event.type == pyg.WINDOWEVENT:
+                #     if event.event == 'WINDOWEVENT_FOCUS_LOST':
+                #         paused = True
 
             event_keys = pyg.key.get_pressed()
              # Movement keys
