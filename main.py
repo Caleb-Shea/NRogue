@@ -129,14 +129,17 @@ class Player(pyg.sprite.Sprite):
         self.hud.update('hp')
 
     def fire(self):
+        """Call the fire function on the equipped weapon."""
         self.cur_weapon.fire()
 
     def add_score(self, amount):
+        """"""
         self.score += amount
         play_sound(self.score_sound)
         self.hud.update('score')
 
     def set_image(self, img):
+        """Change the image for the player."""
         self.image.fill((0, 0, 0, 0))
         self.image.blit(self.sheet, (0, 0), self.image_rect_dict[img])
         # Uncomment when testing one image
@@ -178,6 +181,7 @@ class Player(pyg.sprite.Sprite):
         self.hud.update('pos')
 
     def render(self):
+        """Render the player and the equipped weapon."""
         self.window.blit(self.image, self.draw_rect)
 
         self.cur_weapon.render()
