@@ -48,6 +48,7 @@ class Player(pyg.sprite.Sprite):
         self.has_crystal = False
 
     def add_hud(self, hud):
+        """Helper function that gives self internal access to the hud."""
         self.hud = hud
 
     def move_x(self, amount):
@@ -97,6 +98,7 @@ class Player(pyg.sprite.Sprite):
                         self.vel.y = 0
 
     def apply_pickup(self, pickup):
+        """Execute actions specific to the type of pickup picked up."""
         if pickup.type == 'hp':
             if self.hp < self.max_hp:
                 self.heal(1)
@@ -107,6 +109,8 @@ class Player(pyg.sprite.Sprite):
             self.hud.update('score')
 
     def hurt(self, amount):
+        """The player has half a second of invincibility after each hit.
+           If not invincibile, deal damage to the player equal to amount."""
         if self.i_frames_left > 0:
             return
         else:
@@ -121,6 +125,7 @@ class Player(pyg.sprite.Sprite):
         self.hud.update('hp', 'score')
 
     def heal(self, amount):
+        """The inverse to self.hurt(). Heal the player by a given amount."""
         self.hp += amount
 
         if self.hp > self.max_hp:
@@ -133,7 +138,7 @@ class Player(pyg.sprite.Sprite):
         self.cur_weapon.fire()
 
     def add_score(self, amount):
-        """"""
+        """Update the score then update the hud."""
         self.score += amount
         play_sound(self.score_sound)
         self.hud.update('score')
@@ -619,7 +624,78 @@ class Enemy(pyg.sprite.Sprite):
         if self.draw_rect.colliderect(self.window_rect):
             self.window.blit(self.image, self.draw_rect)
 
+
+class Archer(Enemy):
+    """A class to represent an enemy that trys to stay a moderate distance
+       from the player, as well as firing arrows towards the player."""
+    def __init__(self, window, world, pos):
+        super().__init__(window, world)
+
+        self.image = pyg.Surface((40, 40))
+        # self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'archer.png'))).convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.center = pos
+        self.draw_rect = self.rect
+        self.collide_rect = self.rect.inflate(15, 15)
+
+        self.b_image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'weapons', 'pebble.png'))).convert_alpha()
+        self.b_rect = self.b_image.get_rect()
+
+        self.speed = 2
+        self.max_speed = 2
+        self.dir = 0
+        self.score = 30
+
+        self.close_range = 400
+        self.fire_range = 600
+
+        self.damage = 1
+        self.fire_tick = FPS # Fire once a second
+        self.bullet_data = {'image': self.b_image,
+                            'rect': self.b_rect,
+                            'owner': 'enemy',
+                            'source': self.rect.center,
+                            'target': (0, 0),
+                            'speed': 40,
+                            'invulnerable': False,
+                            'bouncy': False}
+
+        self.hp = 1
+
+    def update(self, player):
+        p_pos = player.rect.center
+        # Distance but without sqrt so it's faster
+        dist = ((self.rect.centerx - player.rect.centerx)**2 +
+                (self.rect.centery - player.rect.centery)**2)
+
+        if dist < self.close_range**2 and not player.is_invisible: # Seek out player
+            self.dir = math.atan2((p_pos[1] - self.rect.center[1]),
+                                  (p_pos[0] - self.rect.center[0]))
+            self.vel.x -= math.cos(self.dir) * self.speed
+            self.vel.y -= math.sin(self.dir) * self.speed
+        else:
+            self.vel.x *= .7
+            self.vel.y *= .7
+
+        if dist < self.fire_range**2 and not player.is_invisible: # Seek out player
+            self.fire_tick -= 1
+
+        if self.fire_tick <= 0:
+            self.fire(p_pos)
+            self.fire_tick = FPS
+
+        super().update()
+
+    def fire(self, p_pos):
+        self.bullet_data['source'] = self.draw_rect.center
+        self.bullet_data['target'] = p_pos
+
+        bullet = Bullet(self.window, self.world, self.bullet_data)
+        self.world.bullets.add(bullet)
+
 class Charger(Enemy):
+    """A class to represent an enemy that has the characteristic to charge
+       towards the player whenever they get nearby."""
     def __init__(self, window, world, pos):
         super().__init__(window, world)
         self.image = pyg.Surface((40, 40))
@@ -630,7 +706,7 @@ class Charger(Enemy):
         self.collide_rect = self.rect.inflate(15, 15)
 
         self.speed = 2
-        self.max_speed = 4
+        self.max_speed = 3.4
         self.dir = 0
         self.score = 20
 
@@ -647,6 +723,7 @@ class Charger(Enemy):
         # Distance but no sqrt so it's faster
         dist = ((self.rect.centerx - player.rect.centerx)**2 +
                 (self.rect.centery - player.rect.centery)**2)
+
         if dist < self.seek_range**2 and not player.is_invisible: # Seek out player
             self.dir = math.atan2((p_pos[1] - self.rect.center[1]),
                                   (p_pos[0] - self.rect.center[0]))
@@ -1217,6 +1294,7 @@ class Room():
             pos = (random.randint(self.rect.x + 200, self.rect.right - 200),
                    random.randint(self.rect.y + 200, self.rect.bottom - 200))
             self.enemies.append(Charger(self.window, self.world, pos))
+            self.enemies.append(Archer(self.window, self.world, pos))
 
         elif type == 'regular':
             # The regular room has a 50% chance to have pickups
