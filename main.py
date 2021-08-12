@@ -809,6 +809,32 @@ class Dummy(Enemy):
         super().update()
 
 
+class Sensor(pyg.sprite.Sprite):
+    def __init__(self, window, world, rect, type, num_uses=-1):
+        super().__init__()
+        self.window = window
+        self.world = world
+        self.rect = rect
+        self.type = type
+
+        self.num_uses = num_uses
+
+    def trigger():
+        self.world.trigger(self.type)
+        self.num_uses -= 1
+        if self.num_uses == 0:
+            self.kill()
+
+    def update(self, player):
+        if self.type == 'prox':
+            if self.rect.colliderect(player.rect):
+                self.trigger()
+
+    def render(self, visible):
+        if visible:
+            pyg.draw.rect(self.window, self.rect, (0, 0, 0), 5)
+
+
 class HUD():
     """
         XXX        XXX
@@ -986,6 +1012,10 @@ class World():
             self.spawn = self.down_ladder.rect.center
         elif dir == 'down':
             self.spawn = self.up_ladder.rect.center
+
+    def trigger(self, type, sensor_rect):
+        """Executes when a sensor is activated."""
+        if type == 
 
     def generate(self, level, theme, dir, preset=None):
         """Create a given level randomly. Until level 10, use grid
@@ -1201,6 +1231,7 @@ class Room():
         self.rect = rect
         self.walls = []
         self.statics = []
+        self.sensors = []
         self.pickups = []
         self.enemies = []
 
@@ -1335,7 +1366,8 @@ class Room():
 
         elif type == 'store':
             #Replace empty walls with doors
-            #
+            prox_sensor = Sensor(self.window, self.world, self.rect, 'touch')
+            self.sensors.append(prox_sensor)
 
     def move(self, pos):
         sprite_list = self.walls + self.pickups + self.statics
@@ -1502,6 +1534,8 @@ def main():
     hud = HUD(window, player, cur_level)
     player.add_hud(hud)
 
+    render_sensors = False
+
     textboxes = []
 
     cheat_codes = {'speed': False,
@@ -1555,6 +1589,8 @@ def main():
                         toggle_cheat_code(player, cheat_codes, 'invisibility')
                     elif event.key == pyg.K_KP7:
                         toggle_cheat_code(player, cheat_codes, 'speed', 'free_move')
+                    elif event.key == pyg.K_KP6:
+                        render_sensors = not render_sensors
                     elif event.key == pyg.K_KP1:
                         player.has_crystal = True
                     elif event.key == pyg.K_1:
@@ -1601,6 +1637,10 @@ def main():
             for b in world.bullets.sprites():
                 b.update()
                 b.render()
+
+            for s in world.sensors:
+                s.update(player)
+                s.render(render_sensors)
 
             for s in world.statics:
                 s.render()
