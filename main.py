@@ -810,29 +810,40 @@ class Dummy(Enemy):
 
 
 class Sensor(pyg.sprite.Sprite):
-    def __init__(self, window, world, rect, type, num_uses=-1):
+    def __init__(self, window, world, rect, type, detail, num_uses=-1):
         super().__init__()
         self.window = window
         self.world = world
         self.rect = rect
+        self.draw_rect = rect
         self.type = type
+        self.detail = detail
+
+        self.color = (0, 0, 0)
 
         self.num_uses = num_uses
 
-    def trigger():
-        self.world.trigger(self.type)
+    def trigger(self):
+        self.world.trigger(self.type, self.detail, self.rect)
         self.num_uses -= 1
         if self.num_uses == 0:
             self.kill()
 
     def update(self, player):
-        if self.type == 'prox':
-            if self.rect.colliderect(player.rect):
-                self.trigger()
+        if self.type == 'touch':
+            if self.draw_rect.colliderect(player.draw_rect):
+                self.triggered = True
+                self.color = (0, 250, 0)
+            else:
+                self.triggered = False
+                self.color = (0, 0, 0)
+
+        if self.triggered:
+            self.trigger()
 
     def render(self, visible):
         if visible:
-            pyg.draw.rect(self.window, self.rect, (0, 0, 0), 5)
+            pyg.draw.rect(self.window, self.color, self.draw_rect, 10)
 
 
 class HUD():
@@ -939,6 +950,7 @@ class Camera():
 
         everything = (world.walls.sprites() +
                       world.statics.sprites() +
+                      world.sensors.sprites() +
                       world.pickups.sprites() +
                       world.enemies.sprites() +
                       world.bullets.sprites())
@@ -975,6 +987,7 @@ class World():
         self.rooms = []
         self.walls = pyg.sprite.Group()
         self.statics = pyg.sprite.Group()
+        self.sensors = pyg.sprite.Group()
         self.pickups = pyg.sprite.Group()
         self.enemies = pyg.sprite.Group()
         self.bullets = pyg.sprite.Group()
@@ -985,6 +998,7 @@ class World():
         self.saved_levels[cur_level] = {'rooms': self.rooms[:],
                                              'walls': self.walls.copy(),
                                              'statics': self.statics.copy(),
+                                             'sensors': self.sensors.copy(),
                                              'pickups': self.pickups.copy(),
                                              'enemies': self.enemies.copy(),
                                              'bullets': self.bullets.copy(),
@@ -995,6 +1009,7 @@ class World():
         self.rooms = []
         self.walls.empty()
         self.statics.empty()
+        self.sensors.empty()
         self.pickups.empty()
         self.enemies.empty()
         self.bullets.empty()
@@ -1002,6 +1017,7 @@ class World():
         self.rooms = self.saved_levels[level]['rooms']
         self.walls = self.saved_levels[level]['walls']
         self.statics = self.saved_levels[level]['statics']
+        self.sensors = self.saved_levels[level]['sensors']
         self.pickups = self.saved_levels[level]['pickups']
         self.enemies = self.saved_levels[level]['enemies']
 
@@ -1013,9 +1029,11 @@ class World():
         elif dir == 'down':
             self.spawn = self.up_ladder.rect.center
 
-    def trigger(self, type, sensor_rect):
-        """Executes when a sensor is activated."""
-        if type == 
+    def trigger(self, type, detail, sensor_rect):
+        """Executes every tick while a sensor is activated."""
+        if type == 'touch':
+            if detail = 'store':
+                ...
 
     def generate(self, level, theme, dir, preset=None):
         """Create a given level randomly. Until level 10, use grid
@@ -1030,6 +1048,7 @@ class World():
         self.rooms = []
         self.walls.empty()
         self.statics.empty()
+        self.sensors.empty()
         self.pickups.empty()
         self.enemies.empty()
         self.bullets.empty()
@@ -1115,20 +1134,27 @@ class World():
             start = visited[0]
             exit = visited[-1]
 
-            random.choice(self.rooms[1:-2]).add_features('treasure')
-            random.choice(self.rooms[1:-2]).set_features('danger')
             self.rooms[start].set_features('start')
             self.rooms[exit].set_features('exit')
 
-            self.down_ladder = self.rooms[exit].statics[0]
+            random.choice(self.rooms[1:-2]).add_features('treasure')
+            random.choice(self.rooms[1:-2]).set_features('danger')
+            # random.choice(self.rooms[1:-2]).set_features('store')
+            for room in self.rooms[1:-2]:
+                if len(room.walls) > 20:
+                    room.set_features('store')
+                    break
+
+            # self.down_ladder = self.rooms[exit].statics[0]
             self.up_ladder = self.rooms[start].statics[0]
+            self.spawn = self.up_ladder.rect.center
 
             self.walls.add([room.walls for room in self.rooms])
             self.statics.add([room.statics for room in self.rooms])
+            self.sensors.add([room.sensors for room in self.rooms])
             self.pickups.add([room.pickups for room in self.rooms])
             self.enemies.add([room.enemies for room in self.rooms])
 
-            self.spawn = self.up_ladder.rect.center
 
     def get_adj_cells(self, dim_x, dim_y, visited, cur):
         """Get the adjacent cells, and if on the edge of the grid,
@@ -1235,7 +1261,7 @@ class Room():
         self.pickups = []
         self.enemies = []
 
-        assert type in ['regular', 'start', 'exit', 'treasure', 'danger', 'shop']
+        assert type in ['regular', 'start', 'exit', 'treasure', 'danger', 'store']
 
          # Create the corners of the room
         corner_coords = [(0, 0),
@@ -1305,6 +1331,7 @@ class Room():
 
     def set_features(self, type):
         self.statics = []
+        self.sensors = []
         self.pickups = []
         self.enemies = []
 
@@ -1365,12 +1392,16 @@ class Room():
                 self.enemies.append(enemy)
 
         elif type == 'store':
-            #Replace empty walls with doors
-            prox_sensor = Sensor(self.window, self.world, self.rect, 'touch')
+            #Create a sensor that activates when one enters the room
+            prox_sensor = Sensor(self.window, self.world, self.rect, 'touch', 'store')
             self.sensors.append(prox_sensor)
 
+
+        fog = RoomFog(self.window, self.rect)
+        self..add(fog)
+
     def move(self, pos):
-        sprite_list = self.walls + self.pickups + self.statics
+        sprite_list = self.walls + self.pickups + self.statics + self.sensors
 
         for sprite in sprite_list:
             sprite.rect.x = pos[0] + (sprite.rect.x - self.rect.x)
