@@ -865,6 +865,8 @@ class HUD():
         self.coffee24 = pyg.font.Font(get_path(os.path.join('assets', 'fonts', 'coffee.ttf')), 24)
         self.hp_sheet = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'hud', 'hp2.png'))).convert_alpha()
 
+        self.text_col = (0, 150, 200)
+
         self.hp_rect_full = pyg.Rect(0, 0, 52, 47)
         self.hp_rect_empty = pyg.Rect(53, 0, 52, 47)
         self.hp_rect = pyg.rect.Rect(0, 0, 1000, 47)
@@ -872,19 +874,19 @@ class HUD():
         self.hp_image.fill((0, 0, 0, 0))
         self.hp_rect.topleft = (10, 10)
 
-        self.score_image = self.apache32.render(str(self.player.score), True, (0, 0, 0))
+        self.score_image = self.apache32.render(str(self.player.score), True, self.text_col)
         self.score_rect = self.score_image.get_rect()
         self.score_rect.bottomright = (WIDTH - 10, HEIGHT - 10)
 
-        self.pos_image = self.apache32.render(str(self.player.rect.center), True, (0, 0, 0))
+        self.pos_image = self.apache32.render(str(self.player.rect.center), True, self.text_col)
         self.pos_rect = self.pos_image.get_rect()
         self.pos_rect.topright = (WIDTH - 10, 10)
 
-        self.level_image = self.coffee24.render(f'Current Level: {level}', True, (0, 0, 0))
+        self.level_image = self.coffee24.render(f'Current Level: {level}', True, self.text_col)
         self.level_rect = self.level_image.get_rect()
         self.level_rect.topright = self.pos_rect.move(0, 10).bottomright
 
-        self.fps_image = self.coffee24.render('FPS: 0', True, (0, 0, 0))
+        self.fps_image = self.coffee24.render('FPS: 0', True, self.text_col)
         self.fps_rect = self.fps_image.get_rect()
         self.fps_rect.topright = self.level_rect.move(0, 10).bottomright
 
@@ -900,22 +902,22 @@ class HUD():
                     self.hp_image.blit(self.hp_sheet, (58*i, 0), self.hp_rect_empty)
 
         if 'score' in args:
-            self.score_image = self.apache32.render(str(self.player.score), True, (0, 0, 0))
+            self.score_image = self.apache32.render(str(self.player.score), True, self.text_col)
             self.score_rect = self.score_image.get_rect()
             self.score_rect.bottomright = (WIDTH - 10, HEIGHT - 10)
 
         if 'pos' in args:
-            self.pos_image = self.apache32.render(str(self.player.rect.topleft), True, (0, 0, 0))
+            self.pos_image = self.apache32.render(str(self.player.rect.topleft), True, self.text_col)
             self.pos_rect = self.pos_image.get_rect()
             self.pos_rect.topright = (WIDTH - 10, 10)
 
         if 'level' in args:
-            self.level_image = self.coffee24.render(f'Current Level: {args[-1]}', True, (0, 0, 0))
+            self.level_image = self.coffee24.render(f'Current Level: {args[-1]}', True, self.text_col)
             self.level_rect = self.level_image.get_rect()
             self.level_rect.topright = self.pos_rect.move(0, 10).bottomright
 
         if 'fps' in args:
-            self.fps_image = self.coffee24.render(f'FPS: {args[-1]}', True, (0, 0, 0))
+            self.fps_image = self.coffee24.render(f'FPS: {args[-1]}', True, self.text_col)
             self.fps_rect = self.fps_image.get_rect()
             self.fps_rect.topright = self.level_rect.move(0, 10).bottomright
 
@@ -953,6 +955,7 @@ class Camera():
                       world.sensors.sprites() +
                       world.pickups.sprites() +
                       world.enemies.sprites() +
+                      world.fogs.sprites() +
                       world.bullets.sprites())
 
         for sprite in everything:
@@ -991,6 +994,7 @@ class World():
         self.pickups = pyg.sprite.Group()
         self.enemies = pyg.sprite.Group()
         self.bullets = pyg.sprite.Group()
+        self.fogs = pyg.sprite.Group()
 
         self.saved_levels = {}
 
@@ -1002,6 +1006,7 @@ class World():
                                              'pickups': self.pickups.copy(),
                                              'enemies': self.enemies.copy(),
                                              'bullets': self.bullets.copy(),
+                                             'fogs': self.bullets.copy(),
                                              'up_ladder': self.up_ladder,
                                              'down_ladder': self.down_ladder}
 
@@ -1013,6 +1018,7 @@ class World():
         self.pickups.empty()
         self.enemies.empty()
         self.bullets.empty()
+        self.fogs.empty()
 
         self.rooms = self.saved_levels[level]['rooms']
         self.walls = self.saved_levels[level]['walls']
@@ -1020,6 +1026,7 @@ class World():
         self.sensors = self.saved_levels[level]['sensors']
         self.pickups = self.saved_levels[level]['pickups']
         self.enemies = self.saved_levels[level]['enemies']
+        self.fogs = self.saved_levels[level]['enemies']
 
         self.up_ladder = self.saved_levels[level]['up_ladder']
         self.down_ladder = self.saved_levels[level]['down_ladder']
@@ -1032,8 +1039,7 @@ class World():
     def trigger(self, type, detail, sensor_rect):
         """Executes every tick while a sensor is activated."""
         if type == 'touch':
-            if detail = 'store':
-                ...
+            ...
 
     def generate(self, level, theme, dir, preset=None):
         """Create a given level randomly. Until level 10, use grid
@@ -1052,6 +1058,7 @@ class World():
         self.pickups.empty()
         self.enemies.empty()
         self.bullets.empty()
+        self.fogs.empty()
 
         if preset:
             self.gen_with_preset(preset)
@@ -1138,14 +1145,8 @@ class World():
             self.rooms[exit].set_features('exit')
 
             random.choice(self.rooms[1:-2]).add_features('treasure')
-            random.choice(self.rooms[1:-2]).set_features('danger')
-            # random.choice(self.rooms[1:-2]).set_features('store')
-            for room in self.rooms[1:-2]:
-                if len(room.walls) > 20:
-                    room.set_features('store')
-                    break
 
-            # self.down_ladder = self.rooms[exit].statics[0]
+            self.down_ladder = self.rooms[exit].statics[0]
             self.up_ladder = self.rooms[start].statics[0]
             self.spawn = self.up_ladder.rect.center
 
@@ -1154,6 +1155,7 @@ class World():
             self.sensors.add([room.sensors for room in self.rooms])
             self.pickups.add([room.pickups for room in self.rooms])
             self.enemies.add([room.enemies for room in self.rooms])
+            self.fogs.add([room.fogs for room in self.rooms])
 
 
     def get_adj_cells(self, dim_x, dim_y, visited, cur):
@@ -1260,8 +1262,9 @@ class Room():
         self.sensors = []
         self.pickups = []
         self.enemies = []
+        self.fogs = []
 
-        assert type in ['regular', 'start', 'exit', 'treasure', 'danger', 'store']
+        assert type in ['regular', 'start', 'exit', 'treasure', 'danger']
 
          # Create the corners of the room
         corner_coords = [(0, 0),
@@ -1334,6 +1337,7 @@ class Room():
         self.sensors = []
         self.pickups = []
         self.enemies = []
+        self.fogs = []
 
         self.add_features(type)
 
@@ -1391,14 +1395,8 @@ class Room():
                     enemy = Archer(self.window, self.world, pos)
                 self.enemies.append(enemy)
 
-        elif type == 'store':
-            #Create a sensor that activates when one enters the room
-            prox_sensor = Sensor(self.window, self.world, self.rect, 'touch', 'store')
-            self.sensors.append(prox_sensor)
-
-
-        fog = RoomFog(self.window, self.rect)
-        self..add(fog)
+        fog = RoomFog(self.window, self.rect.center)
+        self.fogs.append(fog)
 
     def move(self, pos):
         sprite_list = self.walls + self.pickups + self.statics + self.sensors
@@ -1450,14 +1448,22 @@ class Ladder(StaticObject):
         self.collide_rect = pyg.rect.Rect(0, 0, 0, 0)
 
 
-class RoomCover(StaticObject):
+class RoomFog(StaticObject):
     def __init__(self, window, pos):
-        self.image = pyg.Surface(600, 750)
-        self.image.fill(0, 0, 0)
+        """A class to represent the 'fog of war' effect. It is classified as a
+        StaticObject because it does not move, however it differs from other
+        StaticObjects because it has an update(player) method that detects if
+        it has collided with the player. If it does, it kills itself."""
+        self.image = pyg.Surface((750, 600)).convert()
+        self.image.fill((20, 20, 20))
         super().__init__(window, pos, True)
-        # Ladders do not use the collision rect, but a collide_rect
-        # attribute is required, so set it to zeros
+        # A collide_rect attribute is required, but it won't be used
+        # so set it to zeros
         self.collide_rect = pyg.rect.Rect(0, 0, 0, 0)
+
+    def update(self, player):
+        if self.rect.colliderect(player.rect):
+            self.kill()
 
 
 def terminate():
@@ -1686,6 +1692,10 @@ def main():
 
             for w in world.walls:
                 w.render()
+
+            for f in world.fogs:
+                f.update(player)
+                f.render()
 
             hud.update('fps', round(clock.get_fps()))
             hud.render()
