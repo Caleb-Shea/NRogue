@@ -48,7 +48,7 @@ class Player(pyg.sprite.Sprite):
         self.has_crystal = False
 
     def add_hud(self, hud):
-        """Helper function that gives self internal access to the hud."""
+        """Helper function that gives internal access to the hud."""
         self.hud = hud
 
     def move_x(self, amount):
@@ -1006,7 +1006,7 @@ class World():
                                              'pickups': self.pickups.copy(),
                                              'enemies': self.enemies.copy(),
                                              'bullets': self.bullets.copy(),
-                                             'fogs': self.bullets.copy(),
+                                             'fogs': self.fogs.copy(),
                                              'up_ladder': self.up_ladder,
                                              'down_ladder': self.down_ladder}
 
@@ -1026,7 +1026,7 @@ class World():
         self.sensors = self.saved_levels[level]['sensors']
         self.pickups = self.saved_levels[level]['pickups']
         self.enemies = self.saved_levels[level]['enemies']
-        self.fogs = self.saved_levels[level]['enemies']
+        self.fogs = self.saved_levels[level]['fogs']
 
         self.up_ladder = self.saved_levels[level]['up_ladder']
         self.down_ladder = self.saved_levels[level]['down_ladder']
@@ -1139,7 +1139,7 @@ class World():
 
             # Set the start/ exit points to be the first/ last rooms visited
             start = visited[0]
-            exit = visited[-1]
+            exit = visited[random.randint(-3, -1)]
 
             self.rooms[start].set_features('start')
             self.rooms[exit].set_features('exit')
@@ -1217,6 +1217,8 @@ class WorldDecoration():
         self.world = world
 
         self.bg_set_1 = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'background', 'bg_set_1.png')))
+        self.bg_set_2 = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'background', 'bg_set_2.png')))
+        self.bg_set_3 = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'background', 'bg_set_3.png')))
 
     def generate(self, cur_level, theme):
         if theme == 'castle':
@@ -1235,10 +1237,10 @@ class WorldDecoration():
             for x in range(0, self.bg_rect.width, 50):
                 rect = pyg.rect.Rect(0, 0, 50, 50)
                 rect.x = 50 * random.randint(0, 3)
-                self.bg.blit(self.bg_set_1, (x, y), rect)
+                self.bg.blit(self.bg_set_3, (x, y), rect)
 
     def render_bg(self):
-        self.window.fill((255, 255, 255))
+        self.window.fill((20, 20, 20))
         self.window.blit(self.bg, self.bg_draw_rect)
 
 class Room():
@@ -1266,41 +1268,38 @@ class Room():
 
         assert type in ['regular', 'start', 'exit', 'treasure', 'danger']
 
-         # Create the corners of the room
-        corner_coords = [(0, 0),
-                         (self.rect.width - 75, 0),
-                         (0, self.rect.height - 75),
-                         (self.rect.width - 75, self.rect.height - 75)]
-        for coord in corner_coords:
-            pos = (coord[0] + self.rect.x, coord[1] + self.rect.y)
-            wall = Wall(self.window, pos, theme, 'corner')
+         # Create the corners of the room, list is arranged in a 'Z' shape
+        corner_data = [(0, 0, 'tl'),
+                       (self.rect.width - 75, 0, 'tr'),
+                       (0, self.rect.height - 75, 'bl'),
+                       (self.rect.width - 75, self.rect.height - 75, 'br')]
+        for corn in corner_data:
+            pos = (corn[0] + self.rect.x, corn[1] + self.rect.y)
+            wall = Wall(self.window, pos, theme, f'corner_{corn[2]}')
             self.walls.append(wall)
-
-        if type == 'just_corners':
-            return
 
         # Top
         for x in range(75, self.rect.width - 75, 150):
             pos = (x + self.rect.x, self.rect.y)
-            wall = Wall(self.window, pos, theme, 'rl_bottom')
+            wall = Wall(self.window, pos, theme, 'rl_top')
             self.walls.append(wall)
 
         # Right
         for y in range(75, self.rect.height - 75, 150):
             pos = (self.rect.x + self.rect.width - 75, y + self.rect.y)
-            wall = Wall(self.window, pos, theme, 'ud')
+            wall = Wall(self.window, pos, theme, 'ud_right')
             self.walls.append(wall)
 
         # Bottom
         for x in range(75, self.rect.width - 75, 150):
             pos = (x + self.rect.x, self.rect.y + self.rect.height - 75)
-            wall = Wall(self.window, pos, theme, 'rl_top')
+            wall = Wall(self.window, pos, theme, 'rl_bottom')
             self.walls.append(wall)
 
         # Left
         for y in range(75, rect.height - 75, 150):
             pos = (rect.x, y + rect.y)
-            wall = Wall(self.window, pos, theme, 'ud')
+            wall = Wall(self.window, pos, theme, 'ud_left')
             self.walls.append(wall)
 
         self.add_features(type)
@@ -1560,7 +1559,7 @@ def main():
 
     cur_level = 1
     world = World(window)
-    world.generate(cur_level, 'castle', 'nodir')
+    world.generate(cur_level, '3dtest', 'nodir')
 
     world_decor = WorldDecoration(window, world)
     world_decor.generate(cur_level, 'castle')
@@ -1601,7 +1600,7 @@ def main():
                         if player.collide_rect.colliderect(world.down_ladder.rect):
                             world.save_level(cur_level)
                             cur_level += 1
-                            world.generate(cur_level, 'castle', 'down')
+                            world.generate(cur_level, '3dtest', 'down')
                             player.rect.center = world.spawn
                             hud.update('level', cur_level)
 
@@ -1612,7 +1611,7 @@ def main():
                             else:
                                 world.save_level(cur_level)
                                 cur_level -= 1
-                                world.generate(cur_level, 'castle', 'up')
+                                world.generate(cur_level, '3dtest', 'up')
                                 player.rect.center = world.spawn
                                 hud.update('level', cur_level)
 
@@ -1720,13 +1719,37 @@ def main():
                     elif event.key == pyg.K_BACKQUOTE:
                         terminate()
 
-            window.fill((255, 255, 255))
-            window.blit(world_decor.bg, world_decor.bg_draw_rect)
+            world_decor.render_bg()
+
+            for p in world.pickups:
+                p.render()
+
+            for b in world.bullets.sprites():
+                b.render()
+
+            for s in world.sensors:
+                s.render(render_sensors)
+
+            for s in world.statics:
+                s.render()
+
+            for e in world.enemies:
+                e.render()
+
+            player.render()
+
+            for w in world.walls:
+                w.render()
+
+            for f in world.fogs:
+                f.render()
+
+            hud.update('fps', round(clock.get_fps()))
+            hud.render()
 
             window.blit(pause_menu_grayout, (0, 0))
 
             pointer_rect.center = pyg.mouse.get_pos()
-
             window.blit(pointer, pointer_rect)
 
             pyg.display.flip()
