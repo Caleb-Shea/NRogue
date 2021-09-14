@@ -3,17 +3,18 @@ import random
 import math
 import os
 
+
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 
 FPS = 30
 
 
 class Player(pyg.sprite.Sprite):
-    def __init__(self, window, world, char):
+    def __init__(self, window, world):
         super().__init__()
         self.window = window
         self.world = world
-        self.sheet = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'player', f'{char}', 'normal_sheet.png'))).convert_alpha()
+        self.sheet = player_assets['img_sheet']
         self.image_rect_dict = {'right': pyg.rect.Rect(0, 0, 50, 60),
                                 'left':  pyg.rect.Rect(50, 0, 50, 60)}
 
@@ -43,7 +44,7 @@ class Player(pyg.sprite.Sprite):
 
         self.i_frames_left = 0 # Invincibility frames
 
-        self.score_sound = pyg.mixer.Sound(get_path(os.path.join('assets', 'audio', 'score_up.wav')))
+        self.score_sound = player_assets['score_sound']
 
         self.has_crystal = False
 
@@ -204,7 +205,7 @@ class Pickup(pyg.sprite.Sprite):
         self.window = window
         self.window_rect = self.window.get_rect()
         self.image = data['image'].convert_alpha()
-        self.shadow = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'shadows', 'pickup.png'))).convert_alpha()
+        self.shadow = pickup_assets['shadow']
         self.rect = self.image.get_rect()
         self.rect.topleft = data['pos']
         self.draw_rect = self.rect
@@ -348,12 +349,12 @@ class Slingshot():
         self.window = window
         self.world = world
 
-        self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'weapons', 'slingshot.png'))).convert_alpha()
+        self.image = slingshot_assets['slingshot']
         self.rect = self.image.get_rect()
 
         self.image_source = self.image
 
-        self.b_image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'weapons', 'pebble.png'))).convert_alpha()
+        self.b_image = slingshot_assets['pebble']
         self.b_rect = self.b_image.get_rect()
 
         self.bullet_data = {'image': self.b_image,
@@ -402,7 +403,7 @@ class LaserGun():
         self.window = window
         self.world = world
 
-        self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'weapons', 'lasergun.png'))).convert_alpha()
+        self.image = lasergun_assets['lasergun']
         self.rect = self.image.get_rect()
 
         self.image_source = self.image
@@ -631,13 +632,13 @@ class Archer(Enemy):
     def __init__(self, window, world, pos):
         super().__init__(window, world)
 
-        self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'archer.png'))).convert_alpha()
+        self.image = archer_assets['archer']
         self.rect = self.image.get_rect()
         self.rect.center = pos
         self.draw_rect = self.rect
         self.collide_rect = self.rect.inflate(15, 15)
 
-        self.b_image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'arrow.png'))).convert_alpha()
+        self.b_image = archer_assets['arrow']
         self.b_rect = self.b_image.get_rect()
 
         self.speed = 2.5
@@ -709,7 +710,7 @@ class Charger(Enemy):
        towards the player whenever they get nearby."""
     def __init__(self, window, world, pos):
         super().__init__(window, world)
-        self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'charger.png'))).convert_alpha()
+        self.image = charger_assets['charger']
         self.rect = self.image.get_rect()
         self.rect.center = pos
         self.draw_rect = self.rect
@@ -724,9 +725,7 @@ class Charger(Enemy):
 
         self.damage = 2
 
-        self.hp = 2
-        self.hp_meter = Meter(self.window, 2, (0, 0), (50, 10), (200, 50, 50))
-        self.show_hp_meter = False
+        self.hp = 1
 
     def update(self, player):
         p_pos = player.rect.center
@@ -753,28 +752,16 @@ class Charger(Enemy):
             self.vel.y *= .5
             self.speed = 2
 
-        self.hp_meter.rect.midbottom = self.draw_rect.midtop
-        self.hp_meter.rect.y -= 10
-
-        self.hp_meter.set_value(self.hp)
-        if (math.dist(pyg.mouse.get_pos(), self.draw_rect.center) < 250 or
-            math.dist(player.draw_rect.center, self.draw_rect.center) < self.seek_range):
-            self.show_hp_meter = True
-        else:
-            self.show_hp_meter = False
-
         super().update()
 
     def render(self):
         super().render()
-        if self.show_hp_meter:
-            self.hp_meter.render()
 
 
 class Dummy(Enemy):
     def __init__(self, window, world, pos):
         super().__init__(window, world)
-        self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'Dummy.png'))).convert_alpha()
+        self.image = dummy_assets['dummy']
         self.rect = self.image.get_rect()
         self.rect.center = pos
 
@@ -860,9 +847,7 @@ class HUD():
     def __init__(self, window, player, level):
         self.window = window
         self.player = player
-        self.apache32 = pyg.font.Font(get_path(os.path.join('assets', 'fonts', 'apache.ttf')), 32)
-        self.coffee24 = pyg.font.Font(get_path(os.path.join('assets', 'fonts', 'coffee.ttf')), 24)
-        self.hp_sheet = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'hud', 'hp2.png'))).convert_alpha()
+        self.hp_sheet = hud_assets['hp']
 
         self.text_col = (0, 150, 200)
 
@@ -873,19 +858,19 @@ class HUD():
         self.hp_image.fill((0, 0, 0, 0))
         self.hp_rect.topleft = (10, 10)
 
-        self.score_image = self.apache32.render(str(self.player.score), True, self.text_col)
+        self.score_image = fonts['apache32'].render(str(self.player.score), True, self.text_col)
         self.score_rect = self.score_image.get_rect()
         self.score_rect.bottomright = (WIDTH - 10, HEIGHT - 10)
 
-        self.pos_image = self.apache32.render(str(self.player.rect.center), True, self.text_col)
+        self.pos_image = fonts['apache32'].render(str(self.player.rect.center), True, self.text_col)
         self.pos_rect = self.pos_image.get_rect()
         self.pos_rect.topright = (WIDTH - 10, 10)
 
-        self.level_image = self.coffee24.render(f'Current Level: {level}', True, self.text_col)
+        self.level_image = fonts['coffee24'].render(f'Current Level: {level}', True, self.text_col)
         self.level_rect = self.level_image.get_rect()
         self.level_rect.topright = self.pos_rect.move(0, 10).bottomright
 
-        self.fps_image = self.coffee24.render('FPS: 0', True, self.text_col)
+        self.fps_image = fonts['coffee24'].render('FPS: 0', True, self.text_col)
         self.fps_rect = self.fps_image.get_rect()
         self.fps_rect.topright = self.level_rect.move(0, 10).bottomright
 
@@ -901,22 +886,22 @@ class HUD():
                     self.hp_image.blit(self.hp_sheet, (58*i, 0), self.hp_rect_empty)
 
         if 'score' in args:
-            self.score_image = self.apache32.render(str(self.player.score), True, self.text_col)
+            self.score_image = fonts['apache32'].render(str(self.player.score), True, self.text_col)
             self.score_rect = self.score_image.get_rect()
             self.score_rect.bottomright = (WIDTH - 10, HEIGHT - 10)
 
         if 'pos' in args:
-            self.pos_image = self.apache32.render(str(self.player.rect.topleft), True, self.text_col)
+            self.pos_image = fonts['apache32'].render(str(self.player.rect.topleft), True, self.text_col)
             self.pos_rect = self.pos_image.get_rect()
             self.pos_rect.topright = (WIDTH - 10, 10)
 
         if 'level' in args:
-            self.level_image = self.coffee24.render(f'Current Level: {args[-1]}', True, self.text_col)
+            self.level_image = fonts['coffee24'].render(f'Current Level: {args[-1]}', True, self.text_col)
             self.level_rect = self.level_image.get_rect()
             self.level_rect.topright = self.pos_rect.move(0, 10).bottomright
 
         if 'fps' in args:
-            self.fps_image = self.coffee24.render(f'FPS: {args[-1]}', True, self.text_col)
+            self.fps_image = fonts['coffee24'].render(f'FPS: {args[-1]}', True, self.text_col)
             self.fps_rect = self.fps_image.get_rect()
             self.fps_rect.topright = self.level_rect.move(0, 10).bottomright
 
@@ -999,15 +984,15 @@ class World():
 
     def save_level(self, cur_level):
         self.saved_levels[cur_level] = {'rooms': self.rooms[:],
-                                             'walls': self.walls.copy(),
-                                             'statics': self.statics.copy(),
-                                             'sensors': self.sensors.copy(),
-                                             'pickups': self.pickups.copy(),
-                                             'enemies': self.enemies.copy(),
-                                             'bullets': self.bullets.copy(),
-                                             'fogs': self.fogs.copy(),
-                                             'up_ladder': self.up_ladder,
-                                             'down_ladder': self.down_ladder}
+                                        'walls': self.walls.copy(),
+                                        'statics': self.statics.copy(),
+                                        'sensors': self.sensors.copy(),
+                                        'pickups': self.pickups.copy(),
+                                        'enemies': self.enemies.copy(),
+                                        'bullets': self.bullets.copy(),
+                                        'fogs': self.fogs.copy(),
+                                        'up_ladder': self.up_ladder,
+                                        'down_ladder': self.down_ladder}
 
     def gen_saved_level(self, level, dir):
         self.rooms = []
@@ -1040,7 +1025,7 @@ class World():
         if type == 'touch':
             ...
 
-    def generate(self, level, theme, dir, preset=None):
+    def generate(self, level, dir, preset=None):
         """Create a given level randomly. Until level 10, use grid
         generation, in which a grid of rooms is created, then a maze is
         constructed that reaches every room.
@@ -1076,7 +1061,7 @@ class World():
 
             for y in range(0, self.rect.bottom, 600):
                 for x in range(0, self.rect.right, 750):
-                    room = self.create_room('grid', theme, 'regular', (x, y))
+                    room = self.create_room('grid', 'regular', (x, y))
                     self.rooms.append(room)
 
             # Use recursive backtracking to create a path that hits every
@@ -1144,6 +1129,7 @@ class World():
             self.rooms[exit].set_features('exit')
 
             random.choice(self.rooms[1:-2]).add_features('treasure')
+            random.choice(self.rooms[1:-2]).add_features('danger')
 
             self.down_ladder = self.rooms[exit].statics[0]
             self.up_ladder = self.rooms[start].statics[0]
@@ -1156,7 +1142,7 @@ class World():
             self.enemies.add([room.enemies for room in self.rooms])
             self.fogs.add([room.fogs for room in self.rooms])
 
-            self.update_wall_textures(theme)
+            self.update_wall_textures()
 
 
     def get_adj_cells(self, dim_x, dim_y, visited, cur):
@@ -1182,7 +1168,7 @@ class World():
 
         return adj_cells
 
-    def create_room(self, location, theme, type, *args):
+    def create_room(self, location, type, *args):
         if location == 'corner':
             corner = args[0]
 
@@ -1204,19 +1190,15 @@ class World():
             size_y = 600
             room_rect = pyg.rect.Rect(args[0][0], args[0][1], size_x, size_y)
 
-        room = Room(self.window, self, room_rect, type, theme)
+        room = Room(self.window, self, room_rect, type)
 
         return room
 
-    def update_wall_textures(self, theme):
+    def update_wall_textures(self):
         for wall in self.walls:
-            needed_covers = []
-            needed_covers.append('top')
-            needed_covers.append('bottom')
-            needed_covers.append('left')
-            needed_covers.append('right')
+            needed_covers = ['top', 'bottom', 'left', 'right']
 
-            if wall.rect.top == self.rect.top:
+            if wall.rect.top == self.rect.top: # Remove covers if on the edge of the map
                 needed_covers.remove('top')
             if wall.rect.bottom == self.rect.bottom:
                 needed_covers.remove('bottom')
@@ -1253,21 +1235,18 @@ class WorldDecoration():
         self.window = window
         self.world = world
 
-        self.bg_set_1 = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'background', 'bg_set_1.png')))
-        self.bg_set_2 = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'background', 'bg_set_2.png')))
-        self.bg_set_3 = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'background', 'bg_set_3.png')))
+        # self.bg_set_1 = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'background', 'bg_set_1.png')))
+        # self.bg_set_2 = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'background', 'bg_set_2.png')))
+        self.bg_set_3 = world_decor_assets['bg_set_3']
 
-    def generate(self, cur_level, theme):
-        if theme == 'castle':
-            bg_color = (41, 39, 42)
-        elif theme == 'test':
-            bg_color = (60, 70, 70)
-
+    def generate(self, cur_level):
         self.bg_rect = self.world.rect
         self.bg_rect.topleft = self.world.rect.topleft
         self.bg_draw_rect = self.bg_rect
         self.bg = pyg.Surface((self.bg_rect.size)).convert()
-        self.bg.fill(bg_color)
+
+        self.bg_color = (20, 20, 20)
+        self.bg.fill(self.bg_color)
 
         # Create a static background generated from a spritesheet
         for y in range(0, self.bg_rect.height, 50):
@@ -1276,8 +1255,10 @@ class WorldDecoration():
                 rect.x = 50 * random.randint(0, 3)
                 self.bg.blit(self.bg_set_3, (x, y), rect)
 
+        self.bg.convert()
+
     def render_bg(self):
-        self.window.fill((20, 20, 20))
+        self.window.fill(self.bg_color)
         self.window.blit(self.bg, self.bg_draw_rect)
 
 class Room():
@@ -1292,7 +1273,7 @@ class Room():
 
     Minimap label
     """
-    def __init__(self, window, world, rect, type, theme):
+    def __init__(self, window, world, rect, type):
         self.window = window
         self.world = world
         self.rect = rect
@@ -1305,7 +1286,7 @@ class Room():
 
         assert type in ['regular', 'start', 'exit', 'treasure', 'danger']
 
-         # Create the corners of the room, list is arranged in a 'Z' shape
+         # Create the corners of the room
         pos = [(0, 0),
                (self.rect.width - 75, 0),
                (0, self.rect.height - 75),
@@ -1380,17 +1361,21 @@ class Room():
     def add_features(self, type):
         """Generate any special decorations etc."""
         if type == 'start':
-            self.statics.append(Ladder(self.window, self.rect.center, 'up'))
+            pos = (random.randint(self.rect.x + 200, self.rect.right - 200),
+                      random.randint(self.rect.y + 200, self.rect.bottom - 200))
+            self.statics.append(Ladder(self.window, pos, 'up'))
 
         elif type == 'exit':
-            self.statics.append(Ladder(self.window, self.rect.center, 'down'))
+            pos = (random.randint(self.rect.x + 200, self.rect.right - 200),
+                      random.randint(self.rect.y + 200, self.rect.bottom - 200))
+            self.statics.append(Ladder(self.window, pos, 'down'))
 
         elif type == 'treasure':
-             # Create a bunch of cubes centered around a point in the room
+             # Create a bunch of cubes centered around a random point in the room
             center = (random.randint(self.rect.x + 200, self.rect.right - 200),
                       random.randint(self.rect.y + 200, self.rect.bottom - 200))
             for i in range(random.randint(8, 12)):
-                image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'pickups', 'cube.png')))
+                image = pickup_assets['cube']
                 pos = (center[0] + random.randint(-75, 75), center[1] + random.randint(-75, 75))
                 pickup = Pickup(self.window, {'image': image, 'pos': pos, 'type': 'cube'})
                 self.pickups.append(pickup)
@@ -1415,7 +1400,10 @@ class Room():
 
             for i in range(num_p):
                 p_type = random.choices(['hp', 'cube'], weights=[1, 3], k=1)[0]
-                image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'pickups', f'{p_type}.png')))
+                if p_type == 'hp':
+                    image = pickup_assets['hp']
+                elif p_type == 'cube':
+                    image = pickup_assets['cube']
                 pos = (random.randint(self.rect.x + 100, self.rect.right - 100),
                        random.randint(self.rect.y + 100, self.rect.bottom - 100))
                 pickup = Pickup(self.window, {'image': image, 'pos': pos, 'type': f'{p_type}'})
@@ -1479,14 +1467,14 @@ class Wall(StaticObject):
 
 class Fountain(StaticObject):
     def __init__(self, window, pos):
-        self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'fountain.png')))
+        self.image = static_assets['fountain']
         super().__init__(window, pos, True)
         self.collide_rect = self.rect.inflate(-20, -6)
 
 
 class Ladder(StaticObject):
     def __init__(self, window, pos, dir):
-        self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'ladder', f'{dir}.png')))
+        self.image = static_assets[f'ladder_{dir}']
         super().__init__(window, pos, True)
         # Ladders do not use the collision rect, but a collide_rect
         # attribute is required, so set it to zeros
@@ -1571,7 +1559,10 @@ def new_pickup(window, world, pos=None):
                     valid = False
 
     type = random.choices(['hp', 'cube'], weights=[1, 2], k=1)[0]
-    image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'pickups', f'{type}'))).convert_alpha()
+    if type == 'hp':
+        image = pickup_assets['hp']
+    elif type == 'cube':
+        image = pickup_assets['cube']
     data = {'pos': pos, 'type': type, 'image': image}
 
     return Pickup(window, data)
@@ -1596,7 +1587,7 @@ def win():
 def main():
      # Custom mouse pointer
     pyg.mouse.set_visible(False)
-    pointer = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'misc', 'mouse', 'target.png'))).convert_alpha()
+    pointer = mouse_assets['pointer']
     pointer_rect = pointer.get_rect()
 
      # Custom Events
@@ -1605,12 +1596,12 @@ def main():
 
     cur_level = 1
     world = World(window)
-    world.generate(cur_level, '3dtest', 'nodir')
+    world.generate(cur_level, 'nodir')
 
     world_decor = WorldDecoration(window, world)
-    world_decor.generate(cur_level, 'castle')
+    world_decor.generate(cur_level)
 
-    player = Player(window, world, 'block')
+    player = Player(window, world)
     player.rect.center = world.spawn
 
     hud = HUD(window, player, cur_level)
@@ -1646,7 +1637,7 @@ def main():
                         if player.collide_rect.colliderect(world.down_ladder.rect):
                             world.save_level(cur_level)
                             cur_level += 1
-                            world.generate(cur_level, '3dtest', 'down')
+                            world.generate(cur_level, 'down')
                             player.rect.center = world.spawn
                             hud.update('level', cur_level)
 
@@ -1657,7 +1648,7 @@ def main():
                             else:
                                 world.save_level(cur_level)
                                 cur_level -= 1
-                                world.generate(cur_level, '3dtest', 'up')
+                                world.generate(cur_level, 'up')
                                 player.rect.center = world.spawn
                                 hud.update('level', cur_level)
 
@@ -1671,8 +1662,6 @@ def main():
                         toggle_cheat_code(player, cheat_codes, 'invisibility')
                     elif event.key == pyg.K_KP7:
                         toggle_cheat_code(player, cheat_codes, 'speed', 'free_move')
-                    elif event.key == pyg.K_KP6:
-                        render_sensors = not render_sensors
                     elif event.key == pyg.K_KP1:
                         player.has_crystal = True
                     elif event.key == pyg.K_1:
@@ -1816,5 +1805,8 @@ if __name__ == '__main__':
 
     # Init camera outside of main() so we can access it anywhere
     camera = Camera()
+
+    # Import assets after pygame is initalized
+    from asset_loader import *
 
     main()
