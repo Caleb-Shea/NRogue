@@ -256,7 +256,7 @@ class Textbox():
     def __init__(self, window, text_lines, pos, placement, image=None, font='apache', size=32):
         self.window = window
         self.texts = []
-        self.rects = []
+        self.rects = [] 
 
         if font == 'apache':
             self.font = pyg.font.Font(get_path(os.path.join('assets', 'fonts', 'apache.ttf')), size)
