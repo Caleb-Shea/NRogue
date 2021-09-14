@@ -841,9 +841,8 @@ class Sensor(pyg.sprite.Sprite):
         if self.triggered:
             self.trigger()
 
-    def render(self, visible):
-        if visible:
-            pyg.draw.rect(self.window, self.color, self.draw_rect, 10)
+    def render(self):
+        pyg.draw.rect(self.window, self.color, self.draw_rect, 10)
 
 
 class HUD():
@@ -1306,7 +1305,7 @@ class Room():
 
     def remove_wall(self, side, pos):
         side_walls = []
-        if side == 'top':
+        if side == 'top': # Get all the walls on a certain side
             for wall in self.walls:
                 if wall.rect.top == self.rect.top:
                     side_walls.append(wall)
@@ -1323,13 +1322,22 @@ class Room():
                 if wall.rect.right == self.rect.right:
                     side_walls.append(wall)
 
-        if side in ['top', 'bottom']:
+        if side in ['top', 'bottom']: # Sort the walls by their coords
             side_walls.sort(key=lambda wall: wall.rect.x)
         else:
             side_walls.sort(key=lambda wall: wall.rect.y)
 
-        for i in pos:
+        for i in pos: # Remove the walls specified
             self.walls.remove(side_walls[i])
+
+        start = self.walls.index(side_walls[pos[0] - 1]) # Get the walls adjacent to the hole
+        end = self.walls.index(side_walls[pos[-1] + 1])
+        if side in ['top', 'bottom']: # Make the adjacent walls appear solid
+            self.walls[start].make_solid('rl')
+            self.walls[end].make_solid('rl')
+        else:
+            self.walls[start].make_solid('ud')
+            self.walls[end].make_solid('ud')
 
     def set_features(self, type):
         self.statics = []
@@ -1424,11 +1432,17 @@ class StaticObject(pyg.sprite.Sprite):
 
 
 class Wall(StaticObject):
-    def __init__(self, window, pos, type, dir):
-        self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', f'{type}_{dir}.png')))
+    def __init__(self, window, pos, theme, type):
+        self.theme = theme
+        self.type = type
+        self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', f'{self.theme}_{self.type}.png')))
         super().__init__(window, pos, False)
         self.collide_rect = self.rect.inflate(-20, -30)
         self.collide_rect.bottom -= 5
+
+    def make_solid(self, connection):
+        if connection == 'ud' and self.type == 'corner':
+            self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', f'{self.theme}_{self.type}_solid.png')))
 
 
 class Fountain(StaticObject):
@@ -1676,7 +1690,9 @@ def main():
 
             for s in world.sensors:
                 s.update(player)
-                s.render(render_sensors)
+            if render_sensors:
+                for s in world.sensors:
+                    s.render()
 
             for s in world.statics:
                 s.render()
@@ -1727,8 +1743,9 @@ def main():
             for b in world.bullets.sprites():
                 b.render()
 
-            for s in world.sensors:
-                s.render(render_sensors)
+            # if render_sensors:
+            #     for s in world.sensors:
+            #         s.render()
 
             for s in world.statics:
                 s.render()
