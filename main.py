@@ -1156,6 +1156,8 @@ class World():
             self.enemies.add([room.enemies for room in self.rooms])
             self.fogs.add([room.fogs for room in self.rooms])
 
+            self.update_wall_textures(theme)
+
 
     def get_adj_cells(self, dim_x, dim_y, visited, cur):
         """Get the adjacent cells, and if on the edge of the grid,
@@ -1205,6 +1207,42 @@ class World():
         room = Room(self.window, self, room_rect, type, theme)
 
         return room
+
+    def update_wall_textures(self, theme):
+        for wall in self.walls:
+            needed_covers = []
+            needed_covers.append('top')
+            needed_covers.append('bottom')
+            needed_covers.append('left')
+            needed_covers.append('right')
+
+            if wall.rect.top == self.rect.top:
+                needed_covers.remove('top')
+            if wall.rect.bottom == self.rect.bottom:
+                needed_covers.remove('bottom')
+            if wall.rect.right == self.rect.right:
+                needed_covers.remove('right')
+            if wall.rect.left == self.rect.left:
+                needed_covers.remove('left')
+
+            for other in self.walls: # Loop through each wall again to check for connected walls
+                if wall.rect.y == other.rect.y:
+                    if wall.rect.left == other.rect.right:
+                        if 'left' in needed_covers:
+                            needed_covers.remove('left')
+                    if wall.rect.right == other.rect.left:
+                        if 'right' in needed_covers:
+                            needed_covers.remove('right')
+
+                if wall.rect.x == other.rect.x:
+                    if wall.rect.top == other.rect.bottom:
+                        if 'top' in needed_covers:
+                            needed_covers.remove('top')
+                    if wall.rect.bottom == other.rect.top:
+                        if 'bottom' in needed_covers:
+                            needed_covers.remove('bottom')
+
+            wall.add_covers(needed_covers)
 
 
 class WorldDecoration():
@@ -1268,37 +1306,37 @@ class Room():
         assert type in ['regular', 'start', 'exit', 'treasure', 'danger']
 
          # Create the corners of the room, list is arranged in a 'Z' shape
-        corner_data = [(0, 0, 'tl'),
-                       (self.rect.width - 75, 0, 'tr'),
-                       (0, self.rect.height - 75, 'bl'),
-                       (self.rect.width - 75, self.rect.height - 75, 'br')]
-        for corn in corner_data:
+        pos = [(0, 0),
+               (self.rect.width - 75, 0),
+               (0, self.rect.height - 75),
+               (self.rect.width - 75, self.rect.height - 75)]
+        for corn in pos:
             pos = (corn[0] + self.rect.x, corn[1] + self.rect.y)
-            wall = Wall(self.window, pos, theme, f'corner_{corn[2]}')
+            wall = Wall(self.window, pos, 'corner')
             self.walls.append(wall)
 
         # Top
         for x in range(75, self.rect.width - 75, 150):
             pos = (x + self.rect.x, self.rect.y)
-            wall = Wall(self.window, pos, theme, 'rl_top')
-            self.walls.append(wall)
-
-        # Right
-        for y in range(75, self.rect.height - 75, 150):
-            pos = (self.rect.x + self.rect.width - 75, y + self.rect.y)
-            wall = Wall(self.window, pos, theme, 'ud_right')
+            wall = Wall(self.window, pos, 'rl')
             self.walls.append(wall)
 
         # Bottom
         for x in range(75, self.rect.width - 75, 150):
             pos = (x + self.rect.x, self.rect.y + self.rect.height - 75)
-            wall = Wall(self.window, pos, theme, 'rl_bottom')
+            wall = Wall(self.window, pos, 'rl')
+            self.walls.append(wall)
+
+        # Right
+        for y in range(75, self.rect.height - 75, 150):
+            pos = (self.rect.x + self.rect.width - 75, y + self.rect.y)
+            wall = Wall(self.window, pos, 'ud')
             self.walls.append(wall)
 
         # Left
         for y in range(75, rect.height - 75, 150):
             pos = (rect.x, y + rect.y)
-            wall = Wall(self.window, pos, theme, 'ud_left')
+            wall = Wall(self.window, pos, 'ud')
             self.walls.append(wall)
 
         self.add_features(type)
@@ -1329,15 +1367,6 @@ class Room():
 
         for i in pos: # Remove the walls specified
             self.walls.remove(side_walls[i])
-
-        start = self.walls.index(side_walls[pos[0] - 1]) # Get the walls adjacent to the hole
-        end = self.walls.index(side_walls[pos[-1] + 1])
-        if side in ['top', 'bottom']: # Make the adjacent walls appear solid
-            self.walls[start].make_solid('rl')
-            self.walls[end].make_solid('rl')
-        else:
-            self.walls[start].make_solid('ud')
-            self.walls[end].make_solid('ud')
 
     def set_features(self, type):
         self.statics = []
@@ -1432,18 +1461,21 @@ class StaticObject(pyg.sprite.Sprite):
 
 
 class Wall(StaticObject):
-    def __init__(self, window, pos, theme, type):
-        self.theme = theme
+    def __init__(self, window, pos, type):
         self.type = type
-        self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', f'{self.theme}_{self.type}.png')))
+        self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', f'{self.type}.png')))
         super().__init__(window, pos, False)
         self.collide_rect = self.rect.inflate(-20, -30)
         self.collide_rect.bottom -= 5
 
-    def make_solid(self, connection):
-        if connection == 'ud' and self.type == 'corner':
-            self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', f'{self.theme}_{self.type}_solid.png')))
+        self.covers = {'top': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', f'{self.type}_top.png'))),
+                       'bottom': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', f'{self.type}_bottom.png'))),
+                       'right': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', f'{self.type}_right.png'))),
+                       'left': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', f'{self.type}_left.png')))}
 
+    def add_covers(self, covers):
+        for c in covers:
+            self.image.blit(self.covers[c], (0, 0))
 
 class Fountain(StaticObject):
     def __init__(self, window, pos):
