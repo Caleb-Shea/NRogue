@@ -98,6 +98,9 @@ class Player(pyg.sprite.Sprite):
                         self.rect.bottom = wall.collide_rect.top
                         self.vel.y = 0
 
+    def collect_crystal(self):
+        self.has_crystal = True
+
     def apply_pickup(self, pickup):
         """Execute actions specific to the type of pickup picked up."""
         if pickup.type == 'hp':
@@ -626,6 +629,38 @@ class Enemy(pyg.sprite.Sprite):
             self.window.blit(self.image, self.draw_rect)
 
 
+class Crystal(Enemy):
+    """The crystal is the goal object of the game, it remains stationary, and
+       does not hurt the player, but it has health, and responds to the
+       environment, so it is characterized as an enemy"""
+    def __init__(self, window, world, pos):
+        super().__init__(window, world)
+
+        self.image = pyg.Surface((80, 80))
+        self.rect = self.image.get_rect()
+        self.rect.center = pos
+
+        self.draw_rect = self.rect
+        self.collide_rect = self.rect.inflate(-15, -15)
+
+        self.vel.x = 0
+        self.vel.y = 0
+
+        self.hp = 5
+
+    def update(self, player):
+        for bullet in self.world.bullets:
+            if bullet.owner == 'player':
+                if self.collide_rect.colliderect(bullet.rect):
+                    self.hp -= 1
+                    if not bullet.invulnerable:
+                        bullet.kill()
+
+        if self.hp <= 0:
+            self.image.fill((0, 200, 0))
+            player.collect_crystal()
+
+
 class Archer(Enemy):
     """A class to represent an enemy that trys to stay a moderate distance
        from the player, as well as firing arrows towards the player."""
@@ -920,7 +955,7 @@ class PauseMenu():
         self.grayout = pyg.Surface((WIDTH, HEIGHT)).convert_alpha()
         self.grayout.fill((0, 0, 0, 100))
 
-        self.button_text = ['OPTIONS', 'EXIT']
+        self.button_text = ['CONTINUE', 'OPTIONS', 'EXIT']
         self.buttons = self.make_buttons()
         self.arrange_buttons()
 
@@ -1037,7 +1072,8 @@ class World():
                                         'bullets': self.bullets.copy(),
                                         'fogs': self.fogs.copy(),
                                         'up_ladder': self.up_ladder,
-                                        'down_ladder': self.down_ladder}
+                                        'down_ladder': self.down_ladder,
+                                        'crystal': self.crystal}
 
     def gen_saved_level(self, level, dir):
         self.rooms = []
@@ -1059,6 +1095,7 @@ class World():
 
         self.up_ladder = self.saved_levels[level]['up_ladder']
         self.down_ladder = self.saved_levels[level]['down_ladder']
+        self.crystal = self.saved_levels[level]['crystal']
 
         if dir == 'up':
             self.spawn = self.down_ladder.rect.center
@@ -1070,7 +1107,7 @@ class World():
         if type == 'touch':
             ...
 
-    def generate(self, level, dir, preset=None):
+    def generate(self, level, dir):
         """Create a given level randomly. Until level 10, use grid
         generation, in which a grid of rooms is created, then a maze is
         constructed that reaches every room.
@@ -1089,9 +1126,9 @@ class World():
         self.bullets.empty()
         self.fogs.empty()
 
-        if preset:
-            self.gen_with_preset(preset)
-            return
+        is_bottom_level = False
+        if level == 10:
+            is_bottom_level = True
 
         if level < 10:
             gen_type = 'grid'
@@ -1106,7 +1143,7 @@ class World():
 
             for y in range(0, self.rect.bottom, 600):
                 for x in range(0, self.rect.right, 750):
-                    room = self.create_room('grid', 'regular', (x, y))
+                    room = self.create_room('regular', (x, y))
                     self.rooms.append(room)
 
             # Use recursive backtracking to create a path that hits every
@@ -1171,14 +1208,21 @@ class World():
             exit = visited[random.randint(-3, -1)]
 
             self.rooms[start].set_features('start')
-            self.rooms[exit].set_features('exit')
-
-            random.choice(self.rooms[1:-2]).add_features('treasure')
-            random.choice(self.rooms[1:-2]).add_features('danger')
-
-            self.down_ladder = self.rooms[exit].statics[0]
             self.up_ladder = self.rooms[start].statics[0]
             self.spawn = self.up_ladder.rect.center
+
+            if is_bottom_level:
+                self.rooms[exit].set_features('crystal')
+                self.down_ladder = None
+                self.crystal = self.rooms[exit].enemies[0]
+            else:
+                self.rooms[exit].set_features('exit')
+                self.down_ladder = self.rooms[exit].statics[0]
+                self.crystal = None
+
+            random.choice(self.rooms[2:-4]).add_features('treasure')
+            random.choice(self.rooms[2:-4]).add_features('danger')
+
 
             self.walls.add([room.walls for room in self.rooms])
             self.statics.add([room.statics for room in self.rooms])
@@ -1213,27 +1257,10 @@ class World():
 
         return adj_cells
 
-    def create_room(self, location, type, *args):
-        if location == 'corner':
-            corner = args[0]
-
-            size_x = random.randrange(450, 751, 150)
-            size_y = random.randrange(450, 751, 150)
-            room_rect = pyg.rect.Rect(0, 0, size_x, size_y)
-
-            if corner == 0:
-                room_rect.topleft = (0, 0)
-            elif corner == 1:
-                room_rect.topright = (self.rect.width, 0)
-            elif corner == 2:
-                room_rect.bottomleft = (0, self.rect.height)
-            elif corner == 3:
-                room_rect.bottomright = (self.rect.width, self.rect.height)
-
-        elif location == 'grid':
-            size_x = 750
-            size_y = 600
-            room_rect = pyg.rect.Rect(args[0][0], args[0][1], size_x, size_y)
+    def create_room(self, type, pos):
+        size_x = 750
+        size_y = 600
+        room_rect = pyg.rect.Rect(pos[0], pos[1], size_x, size_y)
 
         room = Room(self.window, self, room_rect, type)
 
@@ -1331,7 +1358,8 @@ class Room():
         self.enemies = []
         self.fogs = []
 
-        assert type in ['regular', 'start', 'exit', 'treasure', 'danger']
+        assert type in ['regular', 'start', 'exit', 'treasure', 'danger',
+                        'crystal']
 
          # Create the corners of the room
         pos = [(0, 0),
@@ -1343,6 +1371,7 @@ class Room():
             wall = Wall(self.window, pos, 'corner')
             self.walls.append(wall)
 
+        # Create the walls between each corner
         # Top
         for x in range(75, self.rect.width - 75, 150):
             pos = (x + self.rect.x, self.rect.y)
@@ -1434,6 +1463,9 @@ class Room():
                    random.randint(self.rect.y + 200, self.rect.bottom - 200))
             self.enemies.append(Charger(self.window, self.world, pos))
             self.enemies.append(Archer(self.window, self.world, pos))
+
+        elif type == 'crystal':
+            self.enemies.append(Crystal(self.window, self.world, self.rect.center))
 
         elif type == 'regular':
             # The regular room has a 50% chance to have pickups
@@ -1680,14 +1712,7 @@ def main():
                     elif event.key == pyg.K_SPACE:
                         ...
                     elif event.key == pyg.K_f: # Interact button
-                        if player.collide_rect.colliderect(world.down_ladder.rect):
-                            world.save_level(cur_level)
-                            cur_level += 1
-                            world.generate(cur_level, 'down')
-                            player.rect.center = world.spawn
-                            hud.update('level', cur_level)
-
-                        elif player.collide_rect.colliderect(world.up_ladder.rect):
+                        if player.collide_rect.colliderect(world.up_ladder.rect):
                             if cur_level == 1:
                                 if player.has_crystal:
                                     win()
@@ -1695,6 +1720,13 @@ def main():
                                 world.save_level(cur_level)
                                 cur_level -= 1
                                 world.generate(cur_level, 'up')
+                                player.rect.center = world.spawn
+                                hud.update('level', cur_level)
+                        elif world.down_ladder != None:
+                            if player.collide_rect.colliderect(world.down_ladder.rect):
+                                world.save_level(cur_level)
+                                cur_level += 1
+                                world.generate(cur_level, 'down')
                                 player.rect.center = world.spawn
                                 hud.update('level', cur_level)
 
@@ -1733,10 +1765,11 @@ def main():
                 player.vel.y += player.speed
 
              # Create textboxes for ladder collisions
-            if player.collide_rect.colliderect(world.down_ladder.rect):
-                pos = (player.draw_rect.midtop)
-                textbox = Textbox(window, ["Press 'F'"], pos, 'above')
-                textboxes.append(textbox)
+            if world.down_ladder != None:
+                if player.collide_rect.colliderect(world.down_ladder.rect):
+                    pos = (player.draw_rect.midtop)
+                    textbox = Textbox(window, ["Press 'F'"], pos, 'above')
+                    textboxes.append(textbox)
             if player.collide_rect.colliderect(world.up_ladder.rect):
                 pos = (player.draw_rect.midtop)
                 textbox = Textbox(window, ["Press 'F'"], pos, 'above')
@@ -1751,15 +1784,15 @@ def main():
                 p.update(player)
                 p.render()
 
-            for b in world.bullets.sprites():
+            for b in world.bullets:
                 b.update()
                 b.render()
 
-            for s in world.sensors:
-                s.update(player)
-            if render_sensors:
-                for s in world.sensors:
-                    s.render()
+            # for s in world.sensors:
+            #     s.update(player)
+            # if render_sensors:
+            #     for s in world.sensors:
+            #         s.render()
 
             for s in world.statics:
                 s.render()
@@ -1779,12 +1812,12 @@ def main():
                 f.update(player)
                 f.render()
 
-            hud.update('fps', round(clock.get_fps()))
-            hud.render()
-
             for t in textboxes:
                 t.render()
             textboxes = []
+
+            hud.update('fps', round(clock.get_fps()))
+            hud.render()
 
             pointer_rect.center = pyg.mouse.get_pos()
             window.blit(pointer, pointer_rect)
@@ -1806,6 +1839,8 @@ def main():
                         if button[1].collidepoint(event.pos):
                             if button[2] == 'EXIT':
                                 terminate()
+                            elif button[2] == 'CONTINUE':
+                                paused = False
                             # elif button[2] == 'OPTIONS':
                             #     print('OPTIONS')
 
