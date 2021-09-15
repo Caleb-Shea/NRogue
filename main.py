@@ -912,6 +912,51 @@ class HUD():
         self.window.blit(self.level_image, self.level_rect)
         self.window.blit(self.fps_image, self.fps_rect)
 
+
+class PauseMenu():
+    def __init__(self, window):
+        self.window = window
+
+        self.grayout = pyg.Surface((WIDTH, HEIGHT)).convert_alpha()
+        self.grayout.fill((0, 0, 0, 100))
+
+        self.button_text = ['OPTIONS', 'EXIT']
+        self.buttons = self.make_buttons()
+        self.arrange_buttons()
+
+    def make_buttons(self):
+        buttons = []
+
+        for text in self.button_text:
+            image = fonts['londrina36'].render(f'| {text} |', True, (0, 150, 250))
+            rect = image.get_rect()
+            buttons.append([image, rect, text])
+
+        return buttons
+
+    def arrange_buttons(self):
+        # Center all buttons in a vertical stack in the middle of the screen
+        for i, button in enumerate(self.buttons):
+            button[1].centerx = WIDTH//2
+            button[1].centery = HEIGHT//2 + 120*i - 60*len(self.buttons) + 60
+
+    def update(self):
+        m_pos = pyg.mouse.get_pos()
+        for i, button in enumerate(self.buttons):
+            if button[1].collidepoint(m_pos):
+                button[0] = fonts['londrina40'].render(f'| {self.button_text[i]} |', True, (0, 150, 250))
+            else:
+                button[0] = fonts['londrina36'].render(f'| {self.button_text[i]} |', True, (0, 150, 250))
+            button[1] = button[0].get_rect()
+
+        self.arrange_buttons()
+
+    def render(self):
+        self.window.blit(self.grayout, (0, 0))
+        for b in self.buttons:
+            self.window.blit(b[0], b[1])
+
+
 class Camera():
     """
             XXXXXXXXX
@@ -1238,6 +1283,7 @@ class WorldDecoration():
         # self.bg_set_1 = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'background', 'bg_set_1.png')))
         # self.bg_set_2 = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'background', 'bg_set_2.png')))
         self.bg_set_3 = world_decor_assets['bg_set_3']
+        self.bg_set_4 = world_decor_assets['bg_set_4']
 
     def generate(self, cur_level):
         self.bg_rect = self.world.rect
@@ -1253,7 +1299,8 @@ class WorldDecoration():
             for x in range(0, self.bg_rect.width, 50):
                 rect = pyg.rect.Rect(0, 0, 50, 50)
                 rect.x = 50 * random.randint(0, 3)
-                self.bg.blit(self.bg_set_3, (x, y), rect)
+                rect.y = 50 * random.randint(0, 1)
+                self.bg.blit(self.bg_set_4, (x, y), rect)
 
         self.bg.convert()
 
@@ -1618,8 +1665,7 @@ def main():
     clock = pyg.time.Clock()
 
     paused = False
-    pause_menu_grayout = pyg.Surface((WIDTH, HEIGHT)).convert_alpha()
-    pause_menu_grayout.fill((0, 0, 0, 100))
+    pause_menu = PauseMenu(window)
 
     while True:
         if not paused:
@@ -1755,6 +1801,13 @@ def main():
                         paused = False
                     elif event.key == pyg.K_BACKQUOTE:
                         terminate()
+                elif event.type == pyg.MOUSEBUTTONDOWN:
+                    for button in pause_menu.buttons:
+                        if button[1].collidepoint(event.pos):
+                            if button[2] == 'EXIT':
+                                terminate()
+                            # elif button[2] == 'OPTIONS':
+                            #     print('OPTIONS')
 
             world_decor.render_bg()
 
@@ -1785,7 +1838,8 @@ def main():
             hud.update('fps', round(clock.get_fps()))
             hud.render()
 
-            window.blit(pause_menu_grayout, (0, 0))
+            pause_menu.update()
+            pause_menu.render()
 
             pointer_rect.center = pyg.mouse.get_pos()
             window.blit(pointer, pointer_rect)

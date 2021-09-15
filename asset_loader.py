@@ -1,10 +1,7 @@
 import pygame as pyg
 import os
 
-def get_path(path):
-    """Returns the full file path of a file."""
-    dirname = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(dirname, path)
+from main import get_path
 
 player_assets = {'img_sheet': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'player', 'normal_sheet.png'))).convert_alpha(),
                  'score_sound': pyg.mixer.Sound(get_path(os.path.join('assets', 'audio', 'score_up.wav')))}
@@ -16,7 +13,9 @@ pickup_assets = {'shadow': pyg.image.load(get_path(os.path.join('assets', 'imgs'
 fonts = {'apache32': pyg.font.Font(get_path(os.path.join('assets', 'fonts', 'apache.ttf')), 32),
          'apache30': pyg.font.Font(get_path(os.path.join('assets', 'fonts', 'apache.ttf')), 30),
          'coffee30': pyg.font.Font(get_path(os.path.join('assets', 'fonts', 'coffee.ttf')), 30),
-         'coffee24': pyg.font.Font(get_path(os.path.join('assets', 'fonts', 'coffee.ttf')), 24)}
+         'coffee24': pyg.font.Font(get_path(os.path.join('assets', 'fonts', 'coffee.ttf')), 24),
+         'londrina36': pyg.font.Font(get_path(os.path.join('assets', 'fonts', 'Londrina.otf')), 36),
+         'londrina40': pyg.font.Font(get_path(os.path.join('assets', 'fonts', 'Londrina.otf')), 40)}
 
 slingshot_assets = {'slingshot': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'weapons', 'slingshot.png'))).convert_alpha(),
                     'pebble': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'sprites', 'weapons', 'pebble.png'))).convert_alpha()}
@@ -34,7 +33,8 @@ hud_assets = {'hp': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'hud'
 
 world_decor_assets = {'bg_set_1': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'background', 'bg_set_1.png'))),
                       'bg_set_2': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'background', 'bg_set_2.png'))),
-                      'bg_set_3': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'background', 'bg_set_3.png')))}
+                      'bg_set_3': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'background', 'bg_set_3.png'))),
+                      'bg_set_4': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'background', 'bg_set_4.png')))}
 
 static_assets = {'fountain': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'fountain.png'))),
                  'ladder_up': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'ladder', 'up.png'))),
