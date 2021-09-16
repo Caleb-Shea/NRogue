@@ -1223,7 +1223,6 @@ class World():
             random.choice(self.rooms[2:-4]).add_features('treasure')
             random.choice(self.rooms[2:-4]).add_features('danger')
 
-
             self.walls.add([room.walls for room in self.rooms])
             self.statics.add([room.statics for room in self.rooms])
             self.sensors.add([room.sensors for room in self.rooms])
@@ -1268,33 +1267,65 @@ class World():
 
     def update_wall_textures(self):
         for wall in self.walls:
-            needed_covers = ['top', 'bottom', 'left', 'right']
+            needed_covers = set(['top', 'bottom', 'left', 'right'])
 
             if wall.rect.top == self.rect.top: # Remove covers if on the edge of the map
-                needed_covers.remove('top')
+                needed_covers.discard('top')
             if wall.rect.bottom == self.rect.bottom:
-                needed_covers.remove('bottom')
+                needed_covers.discard('bottom')
             if wall.rect.right == self.rect.right:
-                needed_covers.remove('right')
+                needed_covers.discard('right')
             if wall.rect.left == self.rect.left:
-                needed_covers.remove('left')
+                needed_covers.discard('left')
 
             for other in self.walls: # Loop through each wall again to check for connected walls
                 if wall.rect.y == other.rect.y:
                     if wall.rect.left == other.rect.right:
-                        if 'left' in needed_covers:
-                            needed_covers.remove('left')
+                        needed_covers.discard('left')
                     if wall.rect.right == other.rect.left:
-                        if 'right' in needed_covers:
-                            needed_covers.remove('right')
+                        needed_covers.discard('right')
 
                 if wall.rect.x == other.rect.x:
                     if wall.rect.top == other.rect.bottom:
-                        if 'top' in needed_covers:
-                            needed_covers.remove('top')
+                        needed_covers.discard('top')
                     if wall.rect.bottom == other.rect.top:
-                        if 'bottom' in needed_covers:
-                            needed_covers.remove('bottom')
+                        needed_covers.discard('bottom')
+
+            # if wall.type == 'corner':
+            #     needed_covers.add('tr')
+            #     needed_covers.add('tl')
+            #     needed_covers.add('br')
+            #     needed_covers.add('bl')
+            #     if wall.rect.top == self.rect.top: # Remove covers if on the edge of the map
+            #         needed_covers.discard('tr')
+            #         needed_covers.discard('tl')
+            #         needed_covers.discard('br')
+            #         needed_covers.discard('bl')
+            #     if wall.rect.bottom == self.rect.bottom:
+            #         needed_covers.discard('tr')
+            #         needed_covers.discard('tl')
+            #         needed_covers.discard('br')
+            #         needed_covers.discard('bl')
+            #     if wall.rect.right == self.rect.right:
+            #         needed_covers.discard('tr')
+            #         needed_covers.discard('br')
+            #     if wall.rect.left == self.rect.left:
+            #         needed_covers.discard('tl')
+            #         needed_covers.discard('bl')
+            #
+            #     for other in self.walls:
+            #         if other.type == 'corner':
+            #             if wall.rect.y == other.rect.y:
+            #                 if wall.rect.left == other.rect.right:
+            #                     needed_covers.discard('bl')
+            #                 if wall.rect.right == other.rect.left:
+            #                     needed_covers.discard('br')
+            #
+            #             if wall.rect.x == other.rect.x:
+            #                 if wall.rect.top == other.rect.bottom:
+            #                     needed_covers.discard('tl')
+            #                 if wall.rect.bottom == other.rect.top:
+            #                     needed_covers.discard('tr')
 
             wall.add_covers(needed_covers)
 
@@ -1368,32 +1399,32 @@ class Room():
                (self.rect.width - 75, self.rect.height - 75)]
         for corn in pos:
             pos = (corn[0] + self.rect.x, corn[1] + self.rect.y)
-            wall = Wall(self.window, pos, 'corner')
+            wall = Wall(self.window, pos, 'corner', 'default')
             self.walls.append(wall)
 
         # Create the walls between each corner
         # Top
         for x in range(75, self.rect.width - 75, 150):
             pos = (x + self.rect.x, self.rect.y)
-            wall = Wall(self.window, pos, 'rl')
+            wall = Wall(self.window, pos, 'rl', 'default')
             self.walls.append(wall)
 
         # Bottom
         for x in range(75, self.rect.width - 75, 150):
             pos = (x + self.rect.x, self.rect.y + self.rect.height - 75)
-            wall = Wall(self.window, pos, 'rl')
+            wall = Wall(self.window, pos, 'rl', 'default')
             self.walls.append(wall)
 
         # Right
         for y in range(75, self.rect.height - 75, 150):
             pos = (self.rect.x + self.rect.width - 75, y + self.rect.y)
-            wall = Wall(self.window, pos, 'ud')
+            wall = Wall(self.window, pos, 'ud', 'default')
             self.walls.append(wall)
 
         # Left
         for y in range(75, rect.height - 75, 150):
             pos = (rect.x, y + rect.y)
-            wall = Wall(self.window, pos, 'ud')
+            wall = Wall(self.window, pos, 'ud', 'default')
             self.walls.append(wall)
 
         self.add_features(type)
@@ -1528,17 +1559,22 @@ class StaticObject(pyg.sprite.Sprite):
 
 
 class Wall(StaticObject):
-    def __init__(self, window, pos, type):
+    def __init__(self, window, pos, type, theme):
         self.type = type
-        self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', f'{self.type}.png')))
+        self.theme = theme
+        self.image = pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', theme, f'{self.type}.png')))
         super().__init__(window, pos, False)
         self.collide_rect = self.rect.inflate(-20, -30)
         self.collide_rect.bottom -= 5
 
-        self.covers = {'top': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', f'{self.type}_top.png'))),
-                       'bottom': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', f'{self.type}_bottom.png'))),
-                       'right': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', f'{self.type}_right.png'))),
-                       'left': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', f'{self.type}_left.png')))}
+        self.covers = {'top': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', theme, f'{self.type}_top.png'))),
+                       'bottom': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', theme, f'{self.type}_bottom.png'))),
+                       'right': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', theme, f'{self.type}_right.png'))),
+                       'left': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', theme, f'{self.type}_left.png'))),
+                       'br': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', theme, f'corner_br.png'))),
+                       'bl': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', theme, f'corner_bl.png'))),
+                       'tr': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', theme, f'corner_tr.png'))),
+                       'tl': pyg.image.load(get_path(os.path.join('assets', 'imgs', 'world', 'walls', theme, f'corner_tl.png')))}
 
     def add_covers(self, covers):
         for c in covers:
@@ -1784,10 +1820,6 @@ def main():
                 p.update(player)
                 p.render()
 
-            for b in world.bullets:
-                b.update()
-                b.render()
-
             # for s in world.sensors:
             #     s.update(player)
             # if render_sensors:
@@ -1796,6 +1828,10 @@ def main():
 
             for s in world.statics:
                 s.render()
+
+            for b in world.bullets:
+                b.update()
+                b.render()
 
             for e in world.enemies:
                 e.update(player)
